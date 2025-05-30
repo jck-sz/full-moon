@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Full Moon Countdown</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%);
+            color: #e0e6ed;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .container {
+            text-align: center;
+            padding: 2rem;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .title {
+            font-size: 2rem;
+            margin-bottom: 2rem;
+            background: linear-gradient(45deg, #ffd700, #fff8dc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+        }
+
+        .moon-container {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            margin: 0 auto 2rem;
+        }
+
+        .moon {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
+            position: relative;
+            box-shadow: 
+                0 0 30px rgba(255, 255, 255, 0.3),
+                inset -20px -20px 40px rgba(0, 0, 0, 0.1);
+            animation: moonGlow 4s ease-in-out infinite alternate;
+        }
+
+        .moon-shadow {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, transparent 0%, rgba(0, 0, 0, 0.7) 100%);
+            transition: transform 3s ease-in-out;
+        }
+
+        @keyframes moonGlow {
+            0% {
+                box-shadow: 
+                    0 0 30px rgba(255, 255, 255, 0.3),
+                    inset -20px -20px 40px rgba(0, 0, 0, 0.1);
+            }
+            100% {
+                box-shadow: 
+                    0 0 50px rgba(255, 255, 255, 0.5),
+                    inset -20px -20px 40px rgba(0, 0, 0, 0.1);
+            }
+        }
+
+        .countdown {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: #ffd700;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        .phase-info {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            color: #b8c6db;
+        }
+
+        .next-full-moon {
+            font-size: 0.9rem;
+            color: #8892b0;
+            margin-top: 1rem;
+        }
+
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+        }
+
+        @keyframes twinkle-fast {
+            0%, 100% { opacity: 0.2; }
+            50% { opacity: 1; }
+        }
+
+        @keyframes twinkle-medium {
+            0%, 100% { opacity: 0.3; }
+            30% { opacity: 0.8; }
+            70% { opacity: 0.6; }
+        }
+
+        @keyframes twinkle-slow {
+            0%, 100% { opacity: 0.25; }
+            20% { opacity: 0.4; }
+            50% { opacity: 1; }
+            80% { opacity: 0.35; }
+        }
+
+        @keyframes twinkle-ultra-slow {
+            0%, 100% { opacity: 0.4; }
+            25% { opacity: 0.45; }
+            50% { opacity: 0.8; }
+            75% { opacity: 0.5; }
+        }
+
+        @keyframes twinkle-irregular {
+            0% { opacity: 0.3; }
+            15% { opacity: 0.9; }
+            25% { opacity: 0.2; }
+            45% { opacity: 0.7; }
+            65% { opacity: 0.1; }
+            85% { opacity: 1; }
+            100% { opacity: 0.3; }
+        }
+    </style>
+</head>
+<body>
+    <div class="stars" id="stars"></div>
+    
+    <div class="container">
+        <h1 class="title">🌙 Full Moon Countdown</h1>
+        
+        <div class="moon-container">
+            <div class="moon">
+                <div class="moon-shadow" id="moonShadow"></div>
+            </div>
+        </div>
+        
+        <div class="countdown" id="countdown">Calculating...</div>
+        <div class="phase-info" id="phaseInfo">Current Phase: Loading...</div>
+        <div class="next-full-moon" id="nextFullMoon">Next Full Moon: Loading...</div>
+    </div>
+
+    <script>
+        // Moon phase calculation
+        function getMoonPhase(date = new Date()) {
+            const knownNewMoon = new Date('2000-01-06T18:14:00Z'); // Known new moon
+            const lunarCycle = 29.53058868; // Average lunar cycle in days
+            
+            const daysSinceKnownNewMoon = (date - knownNewMoon) / (1000 * 60 * 60 * 24);
+            const cyclePosition = (daysSinceKnownNewMoon % lunarCycle) / lunarCycle;
+            
+            return cyclePosition;
+        }
+
+        function getMoonPhaseName(phase) {
+            if (phase < 0.0625) return "New Moon";
+            if (phase < 0.1875) return "Waxing Crescent";
+            if (phase < 0.3125) return "First Quarter";
+            if (phase < 0.4375) return "Waxing Gibbous";
+            if (phase < 0.5625) return "Full Moon";
+            if (phase < 0.6875) return "Waning Gibbous";
+            if (phase < 0.8125) return "Third Quarter";
+            if (phase < 0.9375) return "Waning Crescent";
+            return "New Moon";
+        }
+
+        function getNextFullMoon() {
+            const now = new Date();
+            const currentPhase = getMoonPhase(now);
+            const lunarCycle = 29.53058868;
+            
+            let daysToFullMoon;
+            if (currentPhase <= 0.5) {
+                // Before full moon in current cycle
+                daysToFullMoon = (0.5 - currentPhase) * lunarCycle;
+            } else {
+                // After full moon, get next cycle's full moon
+                daysToFullMoon = (1 - currentPhase + 0.5) * lunarCycle;
+            }
+            
+            const nextFullMoon = new Date(now.getTime() + daysToFullMoon * 24 * 60 * 60 * 1000);
+            return nextFullMoon;
+        }
+
+        function updateMoonShadow(phase) {
+            const moonShadow = document.getElementById('moonShadow');
+            const shadowPosition = (phase - 0.5) * 400; // Adjust shadow based on phase
+            
+            if (phase < 0.5) {
+                // Waxing phases
+                moonShadow.style.transform = `translateX(${-200 + phase * 400}px)`;
+            } else {
+                // Waning phases
+                moonShadow.style.transform = `translateX(${200 - (phase - 0.5) * 400}px)`;
+            }
+        }
+
+        function formatTimeRemaining(date) {
+            const now = new Date();
+            const diff = date - now;
+            
+            if (diff <= 0) return "Full Moon is here! 🌕";
+            
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            
+            if (days > 0) {
+                return `${days}d ${hours}h ${minutes}m`;
+            } else if (hours > 0) {
+                return `${hours}h ${minutes}m`;
+            } else {
+                return `${minutes}m`;
+            }
+        }
+
+        function createStars() {
+            const starsContainer = document.getElementById('stars');
+            const numberOfStars = 100;
+            
+            // Define different twinkle patterns with their durations
+            const twinklePatterns = [
+                { name: 'twinkle-fast', minDuration: 3, maxDuration: 5 },
+                { name: 'twinkle-medium', minDuration: 4, maxDuration: 7 },
+                { name: 'twinkle-slow', minDuration: 7, maxDuration: 12 },
+                { name: 'twinkle-ultra-slow', minDuration: 15, maxDuration: 25 },
+                { name: 'twinkle-irregular', minDuration: 3, maxDuration: 8 }
+            ];
+            
+            for (let i = 0; i < numberOfStars; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                
+                // Random position
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                
+                // Random size (some stars are brighter/bigger)
+                const size = Math.random() * 3 + 1;
+                star.style.width = size + 'px';
+                star.style.height = size + 'px';
+                
+                // Choose twinkle pattern with weighted distribution
+                // 8% fast, 8% medium, 40% slow, 30% ultra-slow, 14% irregular
+                const rand = Math.random();
+                let pattern;
+                
+                if (rand < 0.08) {
+                    pattern = twinklePatterns[0]; // fast
+                } else if (rand < 0.16) {
+                    pattern = twinklePatterns[1]; // medium
+                } else if (rand < 0.56) {
+                    pattern = twinklePatterns[2]; // slow
+                } else if (rand < 0.86) {
+                    pattern = twinklePatterns[3]; // ultra-slow
+                } else {
+                    pattern = twinklePatterns[4]; // irregular
+                }
+                
+                // Random duration within the pattern's range
+                const duration = Math.random() * (pattern.maxDuration - pattern.minDuration) + pattern.minDuration;
+                
+                // Random delay before starting
+                const delay = Math.random() * 5;
+                
+                // Apply the animation
+                star.style.animation = `${pattern.name} ${duration}s infinite`;
+                star.style.animationDelay = delay + 's';
+                
+                // Some stars get slightly different colors for variety
+                if (Math.random() < 0.1) {
+                    star.style.background = '#fff8dc'; // Cream color for some stars
+                } else if (Math.random() < 0.05) {
+                    star.style.background = '#e6f3ff'; // Slight blue tint for others
+                }
+                
+                starsContainer.appendChild(star);
+            }
+        }
+
+        function updateDisplay() {
+            const now = new Date();
+            const currentPhase = getMoonPhase(now);
+            const phaseName = getMoonPhaseName(currentPhase);
+            const nextFullMoon = getNextFullMoon();
+            
+            document.getElementById('countdown').textContent = formatTimeRemaining(nextFullMoon);
+            document.getElementById('phaseInfo').textContent = `Current Phase: ${phaseName}`;
+            document.getElementById('nextFullMoon').textContent = 
+                `Next Full Moon: ${nextFullMoon.toLocaleDateString()} at ${nextFullMoon.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+            
+            updateMoonShadow(currentPhase);
+        }
+
+        // Initialize
+        createStars();
+        updateDisplay();
+        
+        // Update every minute
+        setInterval(updateDisplay, 60000);
+    </script>
+</body>
+</html>
